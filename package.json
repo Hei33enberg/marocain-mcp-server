@@ -21,6 +21,9 @@
   "repository": { "type": "git", "url": "https://github.com/Hei33enberg/marocain-mcp-server" },
   "license": "MIT",
   "author": "marocain.investments",
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0"
   }
