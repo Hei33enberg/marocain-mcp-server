@@ -1,5 +1,10 @@
 # @marocain/mcp-server
 
+[![npm](https://img.shields.io/npm/v/@marocain/mcp-server.svg)](https://www.npmjs.com/package/@marocain/mcp-server)
+[![ci](https://github.com/Hei33enberg/marocain-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Hei33enberg/marocain-mcp-server/actions/workflows/ci.yml)
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
+[![node](https://img.shields.io/badge/node-%3E%3D18-green.svg)](./package.json)
+
 The official **Model Context Protocol** server for [marocain.investments](https://marocain.investments) — bringing **{GIN}**, our authored real-estate intelligence for Morocco, into any MCP client (Claude Desktop, IDEs, agents).
 
 ## What is {GIN}?
@@ -44,6 +49,52 @@ Add to `claude_desktop_config.json`:
 | `get_gin_score` | The {GIN} verdict: Quality + Deal pillars + the fused buy/hold/pass headline. |
 | `get_market` | Macro market facts for a city or national scope (median price, supply, momentum, catalysts). |
 | `listing_derive` | AI-derived one-paragraph investment memo for a listing. |
+
+## Example response shapes
+
+`search_listings({ city: "Marrakech", limit: 1 })` →
+
+```json
+{
+  "count": 1,
+  "total": 1947,
+  "limit": 1,
+  "items": [{
+    "id": "34da0a53-...",
+    "url": "https://marocain.investments/listing/34da0a53-...",
+    "title": "PALAIS D'EXCEPTION À VENDRE – MARRAKECH",
+    "city": "Marrakech",
+    "district": "Route de Fès",
+    "typology": "villa",
+    "price_usd": 9630000,
+    "rooms": 6, "surface_m2": 3200
+  }]
+}
+```
+
+`get_gin_score({ id })` → the authored verdict:
+
+```json
+{
+  "id": "…",
+  "title": "…",
+  "price_usd": 9630000,
+  "gin_verdict": { "key": "prime_value", "label": "Prime asset, priced to buy", "tone": "strong" },
+  "gin_quality": 76,
+  "gin_deal": 64,
+  "m_value_usd": 9100000,
+  "trust": { "title_verified": false, "fcr_status": "unknown" }
+}
+```
+
+## Troubleshooting
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| `request timed out after 30000ms` | Upstream slow or unreachable. | Retry. Bump `MAROCAIN_TIMEOUT_MS` if your network is high-latency. |
+| `The Marocain API returned an error (403)` | Rare — Vercel platform-level anti-bot on very bursty traffic. | Back off and retry. Public reads are uncached at the moment. |
+| `The Marocain API returned an error (4xx/5xx)` | Upstream issue. | Retry; report if persistent. The full status code is in the server's stderr. |
+| `ignoring disallowed MAROCAIN_API_BASE` | You set `MAROCAIN_API_BASE` to a non-HTTPS or non-allowlisted host. | Leave it unset (the default is correct) or use `https://marocain.investments`. |
 
 ## Moat-safe by design
 

@@ -25,26 +25,10 @@ import {
   CallToolRequestSchema,
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
+import { resolveBase, qs } from "./lib.js";
 
-const DEFAULT_BASE = "https://marocain.investments";
-const ALLOWED_HOSTS = new Set(["marocain.investments", "www.marocain.investments"]);
 const REQUEST_TIMEOUT_MS = Number(process.env.MAROCAIN_TIMEOUT_MS) || 30_000;
-
-// SSRF guard: an override base must be HTTPS and an allowlisted public host —
-// never localhost, a private IP, or a cloud-metadata endpoint. Anything else
-// falls back to the canonical origin.
-function resolveBase() {
-  const raw = process.env.MAROCAIN_API_BASE;
-  if (!raw) return DEFAULT_BASE;
-  let u;
-  try { u = new URL(raw); } catch { return DEFAULT_BASE; }
-  if (u.protocol !== "https:" || !ALLOWED_HOSTS.has(u.hostname)) {
-    console.error(`marocain-mcp-server: ignoring disallowed MAROCAIN_API_BASE "${raw}" → using ${DEFAULT_BASE}`);
-    return DEFAULT_BASE;
-  }
-  return u.origin;
-}
-const API_BASE = resolveBase();
+const API_BASE = resolveBase(process.env.MAROCAIN_API_BASE);
 
 async function apiGet(path) {
   const ctrl = new AbortController();
@@ -69,15 +53,6 @@ async function apiGet(path) {
     throw new Error(`The Marocain API returned an error (${res.status}). Please retry shortly.`);
   }
   return body;
-}
-
-function qs(params) {
-  const u = new URLSearchParams();
-  for (const [k, v] of Object.entries(params)) {
-    if (v !== undefined && v !== null && v !== "") u.set(k, String(v));
-  }
-  const s = u.toString();
-  return s ? `?${s}` : "";
 }
 
 const TOOLS = [

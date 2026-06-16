@@ -3,6 +3,17 @@
 All notable changes to `@marocain/mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.2] — 2026-06-16
+
+### Quality
+- Extracted pure helpers (`resolveBase`, `qs`) into `lib.js`.
+- Added unit tests via the Node 18+ built-in test runner — **zero new dev dependencies**. `npm test`.
+- GitHub Actions CI matrix (Node 18 / 20 / 22): unit tests + black-box MCP handshake smoke (`test/smoke.mjs`) on every push/PR.
+- README: npm + CI + license + Node badges; response-shape examples for `search_listings` + `get_gin_score`; troubleshooting table.
+
+### No behaviour change
+- Tool surface, schemas, and runtime behaviour are identical to 0.1.1.
+
 ## [0.1.1] — 2026-06-16
 
 ### Security & robustness
