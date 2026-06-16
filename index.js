@@ -26,17 +26,47 @@ import {
   ListToolsRequestSchema,
 } from "@modelcontextprotocol/sdk/types.js";
 
-const API_BASE = process.env.MAROCAIN_API_BASE || "https://marocain.investments";
+const DEFAULT_BASE = "https://marocain.investments";
+const ALLOWED_HOSTS = new Set(["marocain.investments", "www.marocain.investments"]);
+const REQUEST_TIMEOUT_MS = Number(process.env.MAROCAIN_TIMEOUT_MS) || 30_000;
+
+// SSRF guard: an override base must be HTTPS and an allowlisted public host —
+// never localhost, a private IP, or a cloud-metadata endpoint. Anything else
+// falls back to the canonical origin.
+function resolveBase() {
+  const raw = process.env.MAROCAIN_API_BASE;
+  if (!raw) return DEFAULT_BASE;
+  let u;
+  try { u = new URL(raw); } catch { return DEFAULT_BASE; }
+  if (u.protocol !== "https:" || !ALLOWED_HOSTS.has(u.hostname)) {
+    console.error(`marocain-mcp-server: ignoring disallowed MAROCAIN_API_BASE "${raw}" → using ${DEFAULT_BASE}`);
+    return DEFAULT_BASE;
+  }
+  return u.origin;
+}
+const API_BASE = resolveBase();
 
 async function apiGet(path) {
-  const res = await fetch(`${API_BASE}${path}`, {
-    headers: { accept: "application/json", "user-agent": "marocain-mcp-server" },
-  });
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      headers: { accept: "application/json", "user-agent": "marocain-mcp-server" },
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    throw new Error(e?.name === "AbortError" ? `request timed out after ${REQUEST_TIMEOUT_MS}ms` : `network error: ${e?.message ?? e}`);
+  } finally {
+    clearTimeout(timer);
+  }
   const text = await res.text();
   let body;
   try { body = JSON.parse(text); } catch { body = text; }
+  // User-facing error stays generic; internal detail goes to stderr only.
   if (!res.ok) {
-    throw new Error(`GET ${path} → ${res.status}: ${typeof body === "string" ? body.slice(0, 300) : JSON.stringify(body).slice(0, 300)}`);
+    console.error(`marocain-mcp-server: upstream ${res.status} for ${path}`);
+    throw new Error(`The Marocain API returned an error (${res.status}). Please retry shortly.`);
   }
   return body;
 }
@@ -58,13 +88,13 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        city: { type: "string", description: "City name, e.g. Marrakech, Casablanca, Tangier." },
-        typology: { type: "string", description: "Property type, e.g. villa, apartment, riad, land." },
-        min_price_usd: { type: "number", description: "Minimum asking price in USD." },
-        max_price_usd: { type: "number", description: "Maximum asking price in USD." },
-        min_rooms: { type: "number", description: "Minimum number of rooms." },
-        q: { type: "string", description: "Free-text query." },
-        limit: { type: "number", description: "Max results (default 20)." },
+        city: { type: "string", maxLength: 60, description: "City name, e.g. Marrakech, Casablanca, Tangier." },
+        typology: { type: "string", maxLength: 40, description: "Property type, e.g. villa, apartment, riad, land." },
+        min_price_usd: { type: "number", minimum: 0, maximum: 1e9, description: "Minimum asking price in USD." },
+        max_price_usd: { type: "number", minimum: 0, maximum: 1e9, description: "Maximum asking price in USD." },
+        min_rooms: { type: "number", minimum: 0, maximum: 100, description: "Minimum number of rooms." },
+        q: { type: "string", maxLength: 200, description: "Free-text query." },
+        limit: { type: "number", minimum: 1, maximum: 50, description: "Max results (default 20, max 50)." },
       },
     },
     handler: (a) =>
@@ -79,7 +109,7 @@ const TOOLS = [
       "Full detail for one listing by id: price (USD/MAD), AI scores, M-Value AVM, FCR/title trust, source provenance and the {GIN} pillars + verdict. Never returns the agent's phone.",
     inputSchema: {
       type: "object",
-      properties: { id: { type: "string", description: "Listing id (UUID)." } },
+      properties: { id: { type: "string", maxLength: 64, description: "Listing id (UUID)." } },
       required: ["id"],
     },
     handler: (a) => apiGet(`/api/public/listings/${encodeURIComponent(a.id)}`),
@@ -90,7 +120,7 @@ const TOOLS = [
       "The {GIN} coherent verdict for a listing: the Quality pillar (asset, compute_marocain_score), the Deal pillar (price-vs-AVM + momentum) and the one fused buy/hold/pass verdict. The authored number an investor can defend.",
     inputSchema: {
       type: "object",
-      properties: { id: { type: "string", description: "Listing id (UUID)." } },
+      properties: { id: { type: "string", maxLength: 64, description: "Listing id (UUID)." } },
       required: ["id"],
     },
     handler: async (a) => {

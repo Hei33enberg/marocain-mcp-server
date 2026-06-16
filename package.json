@@ -1,12 +1,12 @@
 {
   "name": "@marocain/mcp-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Model Context Protocol server for marocain.investments — the {GIN} authored real-estate intelligence (scoring verdict, M-Value, market facts, derived memos) for Morocco. Moat-safe: never exposes agent contact details.",
   "type": "module",
   "bin": {
     "marocain-mcp-server": "index.js"
   },
-  "files": ["index.js", "README.md", "LICENSE"],
+  "files": ["index.js", "README.md", "LICENSE", "CHANGELOG.md"],
   "engines": {
     "node": ">=18"
   },
@@ -25,6 +25,6 @@
     "access": "public"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.0.0"
+    "@modelcontextprotocol/sdk": "~1.29.0"
   }
 }
