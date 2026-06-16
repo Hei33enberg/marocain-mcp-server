@@ -111,6 +111,15 @@ No tool ever returns an agent's phone number or private contact details. The pub
 - Skills catalog: [`@hei33enberg/luxury-skills`](https://www.npmjs.com/package/@hei33enberg/luxury-skills) (npm) — the full machine-readable capability catalog this server draws from.
 - Live API: `https://marocain.investments/api/public/*`.
 
+## Releasing
+
+```bash
+# from the repo root, after edits + green tests
+npm version patch              # or minor / major
+npm publish --access public    # needs an npm token in .npmrc (gitignored)
+git push --follow-tags
+```
+
 ## License
 
 MIT © marocain.investments
