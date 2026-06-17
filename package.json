@@ -15,9 +15,12 @@
     "test": "node --test test/lib.test.js"
   },
   "keywords": [
-    "mcp", "model-context-protocol", "morocco", "real-estate", "gin",
+    "mcp", "model-context-protocol", "mcp-server", "morocco", "real-estate", "gin",
     "marocain", "ai-agents", "tool-use", "marrakech", "casablanca", "investment"
   ],
+  "mcp": {
+    "categories": ["Real Estate", "Finance & Fintech", "Search & Data Extraction"]
+  },
   "homepage": "https://marocain.investments",
   "repository": { "type": "git", "url": "https://github.com/Hei33enberg/marocain-mcp-server" },
   "license": "MIT",

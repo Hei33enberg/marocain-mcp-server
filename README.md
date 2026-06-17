@@ -4,6 +4,8 @@
 [![ci](https://github.com/Hei33enberg/marocain-mcp-server/actions/workflows/ci.yml/badge.svg)](https://github.com/Hei33enberg/marocain-mcp-server/actions/workflows/ci.yml)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](./LICENSE)
 [![node](https://img.shields.io/badge/node-%3E%3D18-green.svg)](./package.json)
+[![Glama MCP](https://glama.ai/mcp/servers/@marocain/mcp-server/badges/score.svg)](https://glama.ai/mcp/servers/@marocain/mcp-server)
+[![Smithery MCP](https://smithery.ai/badge/@marocain/mcp-server)](https://smithery.ai/server/@marocain/mcp-server)
 
 The official **Model Context Protocol** server for [marocain.investments](https://marocain.investments) — bringing **{GIN}**, our authored real-estate intelligence for Morocco, into any MCP client (Claude Desktop, IDEs, agents).
 
