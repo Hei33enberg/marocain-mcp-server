@@ -3,6 +3,12 @@
 All notable changes to `@marocain/mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.4] — 2026-06-23
+
+### Added
+- **`gin_ask`** — one-shot query to T{AI]GIN, the {GIN} agentic investment analyst (plans, searches catalogue + guides, scores with the {GIN} pillars, answers with citations). Forwards to `/api/public/gin/ask`.
+- **`gin_deal_memo`** — structured, honest investor deal memo for a listing (verdict, M-Value, yield, strengths/risks, district read). Forwards to `/api/public/gin/deal-memo`.
+
 ## [0.1.3] — 2026-06-23
 
 ### Added

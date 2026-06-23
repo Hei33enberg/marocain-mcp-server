@@ -153,12 +153,34 @@ const TOOLS = [
     },
     handler: (a) => apiGet(`/api/public/semantic-search${qs({ q: a.q, types: a.types, k: a.k ?? 8 })}`),
   },
+  {
+    name: "gin_ask",
+    description:
+      "Ask T{AI]GIN — the {GIN} agentic investment analyst — a one-shot natural-language question. It plans, searches the catalogue + authored guides, scores with the {GIN} pillars and answers grounded with citations. Use for open questions ('which Tangier district has the best rental upside?', 'why Morocco over Dubai?'). Never returns agent contact details.",
+    inputSchema: {
+      type: "object",
+      properties: { q: { type: "string", maxLength: 800, description: "Natural-language question for the analyst." } },
+      required: ["q"],
+    },
+    handler: (a) => apiGet(`/api/public/gin/ask${qs({ q: a.q })}`),
+  },
+  {
+    name: "gin_deal_memo",
+    description:
+      "Generate a structured investor DEAL MEMO for one listing id: the {GIN} Quality + Deal verdict, M-Value AVM with value-vs-ask, gross yield, strengths, risks, district read and next steps. Honest (won't soften an overpriced verdict). Decision support, not a certified appraisal.",
+    inputSchema: {
+      type: "object",
+      properties: { listing_id: { type: "string", maxLength: 64, description: "Listing id (UUID)." } },
+      required: ["listing_id"],
+    },
+    handler: (a) => apiGet(`/api/public/gin/deal-memo${qs({ listing_id: a.listing_id })}`),
+  },
 ];
 
 const TOOL_BY_NAME = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
 
 const server = new Server(
-  { name: "marocain-mcp-server", version: "0.1.3" },
+  { name: "marocain-mcp-server", version: "0.1.4" },
   { capabilities: { tools: {} } },
 );
 

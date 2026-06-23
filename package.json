@@ -1,6 +1,6 @@
 {
   "name": "@marocain/mcp-server",
-  "version": "0.1.3",
+  "version": "0.1.4",
   "description": "Model Context Protocol server for marocain.investments — the {GIN} authored real-estate intelligence (scoring verdict, M-Value, market facts, derived memos) for Morocco. Moat-safe: never exposes agent contact details.",
   "type": "module",
   "bin": {
