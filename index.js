@@ -11,9 +11,13 @@
  * momentum) — fused into one honest verdict. These tools surface that verdict,
  * the M-Value valuation, market facts and AI-derived investment memos.
  *
- * MOAT-SAFE BY DESIGN: no tool ever returns agent phone numbers or private
- * contact details — the public API hides them, and buyer enquiries are routed
- * only through the platform's own lead flow on the site.
+ * MOAT-SAFE BY DESIGN: no tool ever returns agent/seller contact details. On top
+ * of the public API hiding the phone, this server also REDACTS the origin-portal
+ * deep link (source_url / source_listing_id / source_aliases) and the agent/agency
+ * name from listing payloads, so an external agent can't route a user past the
+ * platform to the seller. The ONLY conversion path is `request_service`, which
+ * routes a buyer enquiry through marocain's own lead flow and returns a reference,
+ * never any contact — that's the agent-pays moat.
  *
  * Stdio transport. Add to an MCP client (e.g. Claude Desktop) with:
  *   { "command": "npx", "args": ["-y", "@marocain/mcp-server"] }
@@ -55,6 +59,56 @@ async function apiGet(path) {
   return body;
 }
 
+async function apiPost(path, payload) {
+  const ctrl = new AbortController();
+  const timer = setTimeout(() => ctrl.abort(), REQUEST_TIMEOUT_MS);
+  let res;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      method: "POST",
+      headers: { accept: "application/json", "content-type": "application/json", "user-agent": "marocain-mcp-server" },
+      body: JSON.stringify(payload),
+      signal: ctrl.signal,
+    });
+  } catch (e) {
+    throw new Error(e?.name === "AbortError" ? `request timed out after ${REQUEST_TIMEOUT_MS}ms` : `network error: ${e?.message ?? e}`);
+  } finally {
+    clearTimeout(timer);
+  }
+  const text = await res.text();
+  let body;
+  try { body = JSON.parse(text); } catch { body = text; }
+  if (!res.ok) {
+    console.error(`marocain-mcp-server: upstream ${res.status} for ${path}`);
+    // Pass validation messages (400) through so the agent can correct the call.
+    const msg = body && typeof body === "object" && body.error ? body.error : `The Marocain API returned an error (${res.status}).`;
+    throw new Error(msg);
+  }
+  return body;
+}
+
+// Strip the moat-bypass fields from any listing object (single or nested arrays):
+// the origin-portal deep link + the agent/agency identity. Keeps the `source` NAME
+// (provenance) but not the actionable link. Adds an enquiry pointer.
+const MOAT_STRIP = ["source_url", "source_listing_id", "source_aliases", "agent_name", "agency_name"];
+function redactListing(node) {
+  if (!node || typeof node !== "object") return node;
+  if (Array.isArray(node)) return node.map(redactListing);
+  const out = { ...node };
+  for (const k of MOAT_STRIP) if (k in out) delete out[k];
+  for (const key of ["items", "listings", "results", "data"]) {
+    if (Array.isArray(out[key])) out[key] = out[key].map(redactListing);
+  }
+  if (out.id && (out.title !== undefined || out.price_usd !== undefined)) {
+    out.enquire = {
+      via: "request_service",
+      url: `https://marocain.investments/listing/${out.id}`,
+      note: "Seller/agent contact is intermediated by the platform. To enquire, call request_service (or open the listing URL) and marocain routes your lead to the agent.",
+    };
+  }
+  return out;
+}
+
 const TOOLS = [
   {
     name: "search_listings",
@@ -72,11 +126,11 @@ const TOOLS = [
         limit: { type: "number", minimum: 1, maximum: 50, description: "Max results (default 20, max 50)." },
       },
     },
-    handler: (a) =>
-      apiGet(`/api/public/listings/search${qs({
+    handler: async (a) =>
+      redactListing(await apiGet(`/api/public/listings/search${qs({
         city: a.city, typology: a.typology, min_price_usd: a.min_price_usd,
         max_price_usd: a.max_price_usd, min_rooms: a.min_rooms, q: a.q, limit: a.limit ?? 20,
-      })}`),
+      })}`)),
   },
   {
     name: "get_listing",
@@ -87,7 +141,7 @@ const TOOLS = [
       properties: { id: { type: "string", maxLength: 64, description: "Listing id (UUID)." } },
       required: ["id"],
     },
-    handler: (a) => apiGet(`/api/public/listings/${encodeURIComponent(a.id)}`),
+    handler: async (a) => redactListing(await apiGet(`/api/public/listings/${encodeURIComponent(a.id)}`)),
   },
   {
     name: "get_gin_score",
@@ -175,12 +229,56 @@ const TOOLS = [
     },
     handler: (a) => apiGet(`/api/public/gin/deal-memo${qs({ listing_id: a.listing_id })}`),
   },
+  {
+    name: "request_service",
+    description:
+      "Submit a buyer ENQUIRY (or request a viewing / valuation / financing / renovation / legal help) for a listing. This is the ONLY conversion path: it routes the enquiry through marocain.investments to the listing's verified agent and returns a confirmation reference — it NEVER returns the agent's contact (the platform intermediates all contact). Works for listings that have a claimed, verified agent; for not-yet-claimed scraped listings it returns a clear note instead of routing. Requires the buyer's name + email so the agent can follow up.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        listing_id: { type: "string", maxLength: 64, description: "Listing id (UUID) to enquire about." },
+        buyer_name: { type: "string", maxLength: 120, description: "The enquiring buyer's name." },
+        buyer_email: { type: "string", maxLength: 200, description: "The buyer's email for the agent to reply to." },
+        buyer_phone: { type: "string", maxLength: 40, description: "Optional buyer phone." },
+        message: { type: "string", maxLength: 2000, description: "Optional message — what they're looking for / questions." },
+        service_interest: { type: "string", maxLength: 80, description: "Optional: viewing, valuation, financing, renovation, legal, etc." },
+      },
+      required: ["listing_id", "buyer_name", "buyer_email"],
+    },
+    handler: async (a) => {
+      const message = a.message
+        ? (a.service_interest ? `[${a.service_interest}] ${a.message}` : a.message)
+        : (a.service_interest ? `Enquiry (${a.service_interest}) submitted via the {GIN} agent.` : undefined);
+      try {
+        return await apiPost(`/api/orders`, {
+          product_type: "contact", variant: "contact",
+          listing_id: a.listing_id, buyer_name: a.buyer_name, buyer_email: a.buyer_email,
+          buyer_phone: a.buyer_phone, message,
+        });
+      } catch (e) {
+        const m = String(e?.message ?? "");
+        // Most catalogue listings are scraped + not yet claimed by an agent: the
+        // platform won't route a lead with no agent to receive it. Surface that
+        // clearly instead of the raw DB error.
+        if (/no assigned agent/i.test(m)) {
+          return {
+            ok: false, routed: false, reason: "listing_unclaimed",
+            note: "This listing isn't yet claimed by a verified agent on marocain.investments, so a direct enquiry can't be routed. Try a claimed/verified listing, or check back as agents onboard.",
+          };
+        }
+        if (/duplicate/i.test(m)) {
+          return { ok: true, routed: true, note: "A recent enquiry for this listing already exists — the agent already has it." };
+        }
+        throw e;
+      }
+    },
+  },
 ];
 
 const TOOL_BY_NAME = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
 
 const server = new Server(
-  { name: "marocain-mcp-server", version: "0.1.4" },
+  { name: "marocain-mcp-server", version: "0.1.5" },
   { capabilities: { tools: {} } },
 );
 

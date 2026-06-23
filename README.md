@@ -9,15 +9,17 @@
 
 The official **Model Context Protocol** server for [marocain.investments](https://marocain.investments) — bringing **{GIN}**, our authored real-estate intelligence for Morocco, into any MCP client (Claude Desktop, IDEs, agents).
 
+Discover, score and analyse Moroccan luxury real estate — then submit an enquiry that's routed on-platform. All the analysis is free; contact with the agent is always intermediated by the platform.
+
 ## What is {GIN}?
 
 {GIN} is the platform's proprietary scoring DNA. Instead of one blurry "AI score", it speaks with **two coherent pillars fused into one honest verdict**:
 
-- **{GIN} Quality** — how good the *asset* is (vision view/structural/condition + location + yield + WC2030 catalyst + trust).
+- **{GIN} Quality** — how good the *asset* is (vision view/structural/condition + location + yield + WC 2030 catalyst + trust).
 - **{GIN} Deal** — how good the *buy* is (asking price vs. the M-Value AVM, adjusted for city momentum).
 - **Fused verdict** — one buy/hold/pass headline that can never disagree with the numbers ("Prime asset, priced to buy", "Cheap — verify condition", …).
 
-It's the difference between a *good property* and a *good deal* — the question generic scores never answer.
+It's the difference between a *good property* and a *good deal* — the question generic scores never answer. It's honest by design: an overpriced listing is told it's overpriced.
 
 ## Install
 
@@ -44,35 +46,31 @@ Add to `claude_desktop_config.json`:
 
 ## Tools
 
+Nine tools — eight read-only analysis tools plus one moat-safe enquiry tool.
+
 | Tool | What it does |
 |------|--------------|
 | `search_listings` | Search AI-graded Moroccan listings by city, typology, price, rooms, free-text. |
-| `get_listing` | Full detail for one listing — price, AI scores, M-Value, trust, provenance, {GIN} pillars. |
+| `get_listing` | Full detail for one listing — price (USD/MAD), AI scores, M-Value AVM, trust, {GIN} pillars + verdict. |
 | `get_gin_score` | The {GIN} verdict: Quality + Deal pillars + the fused buy/hold/pass headline. |
-| `get_market` | Macro market facts for a city or national scope (median price, supply, momentum, catalysts). |
-| `listing_derive` | AI-derived one-paragraph investment memo for a listing. |
+| `get_market` | Macro market facts for a city or national scope (median price, supply, momentum, WC 2030 / TGV catalysts). |
+| `listing_derive` | AI-derived one-paragraph investment memo for a listing (6 languages). |
+| `semantic_search` | Conceptual / vector search across the catalogue **and** the authored guides (Foreign Buyer's Playbook, Morocco-vs-Dubai, AI-scoring methodology, residency, city theses). |
+| `gin_ask` | Ask **T{AI]GIN**, the agentic investment analyst, a one-shot question — it plans, searches, scores with the {GIN} pillars and answers with citations. |
+| `gin_deal_memo` | A structured, honest investor **deal memo** for one listing (verdict, M-Value, yield, strengths, risks, district read, next steps). |
+| `request_service` | Submit a buyer **enquiry** / request a viewing, valuation, financing, renovation or legal help — routed on-platform to the listing's verified agent. Returns a reference, **never** any contact. |
+
+## Discover → analyse → enquire
+
+The model is simple and the same for everyone: **all the intelligence is free** (it's lead-gen), and **the only way to make contact is through the platform** (that's the moat, and how agents are billed).
+
+1. **Discover & score** with `search_listings` / `get_gin_score` / `semantic_search`.
+2. **Go deep** with `get_listing` / `gin_deal_memo` / `gin_ask`.
+3. **Enquire** with `request_service` — it routes the buyer's interest to the listing's verified agent and returns a reference. You never receive the agent's phone, email or WhatsApp; the platform intermediates contact.
+
+> Most of the catalogue is still being onboarded by agents. `request_service` routes to a listing's **claimed, verified agent**; for a listing without one yet it returns a clear note instead of routing.
 
 ## Example response shapes
-
-`search_listings({ city: "Marrakech", limit: 1 })` →
-
-```json
-{
-  "count": 1,
-  "total": 1947,
-  "limit": 1,
-  "items": [{
-    "id": "34da0a53-...",
-    "url": "https://marocain.investments/listing/34da0a53-...",
-    "title": "PALAIS D'EXCEPTION À VENDRE – MARRAKECH",
-    "city": "Marrakech",
-    "district": "Route de Fès",
-    "typology": "villa",
-    "price_usd": 9630000,
-    "rooms": 6, "surface_m2": 3200
-  }]
-}
-```
 
 `get_gin_score({ id })` → the authored verdict:
 
@@ -89,38 +87,49 @@ Add to `claude_desktop_config.json`:
 }
 ```
 
+`request_service({ listing_id, buyer_name, buyer_email, message })` → an on-platform reference, no contact:
+
+```json
+{ "ok": true, "kind": "lead", "lead_id": "…", "status": "requested", "routed": true }
+```
+
+## Moat-safe by design
+
+No tool ever returns an agent's or seller's contact. On top of the public API hiding the phone, this server **redacts the origin-portal deep link** (`source_url` / `source_listing_id`) and the **agent / agency name** from listing payloads — so a downstream agent can't route a user off-platform to the seller. The single conversion path is `request_service`, which routes a buyer enquiry through marocain's own lead flow and returns a reference, never any contact. Discover, score and analyse freely; **contact is always intermediated by the platform.**
+
 ## Troubleshooting
 
 | Symptom | Cause | Fix |
 |---|---|---|
 | `request timed out after 30000ms` | Upstream slow or unreachable. | Retry. Bump `MAROCAIN_TIMEOUT_MS` if your network is high-latency. |
-| `The Marocain API returned an error (403)` | Rare — Vercel platform-level anti-bot on very bursty traffic. | Back off and retry. Public reads are uncached at the moment. |
-| `The Marocain API returned an error (4xx/5xx)` | Upstream issue. | Retry; report if persistent. The full status code is in the server's stderr. |
-| `ignoring disallowed MAROCAIN_API_BASE` | You set `MAROCAIN_API_BASE` to a non-HTTPS or non-allowlisted host. | Leave it unset (the default is correct) or use `https://marocain.investments`. |
-
-## Moat-safe by design
-
-No tool ever returns an agent's phone number or private contact details. The public API hides them, and buyer enquiries are routed only through the platform's own lead flow on the site. You can discover, score and analyse inventory freely — contact happens on-platform.
+| `The Marocain API returned an error (403)` | Rare — Vercel platform-level anti-bot on very bursty traffic. | Back off and retry. |
+| `valid buyer_email required` (from `request_service`) | A buyer name + valid email are mandatory so the agent can reply. | Supply both. |
+| `listing_unclaimed` (from `request_service`) | The listing has no claimed agent yet, so the enquiry can't be routed. | Try a claimed/verified listing; check back as agents onboard. |
+| `ignoring disallowed MAROCAIN_API_BASE` | You set `MAROCAIN_API_BASE` to a non-HTTPS or non-allowlisted host. | Leave it unset (the default is correct). |
 
 ## Configuration
 
 | Env var | Default | Purpose |
 |---------|---------|---------|
-| `MAROCAIN_API_BASE` | `https://marocain.investments` | Override the API origin (testing). |
+| `MAROCAIN_API_BASE` | `https://marocain.investments` | Override the API origin (testing only; must be HTTPS + allowlisted). |
+| `MAROCAIN_TIMEOUT_MS` | `30000` | Per-request upstream timeout. |
 
 ## Related
 
-- Skills catalog: [`@hei33enberg/luxury-skills`](https://www.npmjs.com/package/@hei33enberg/luxury-skills) (npm) — the full machine-readable capability catalog this server draws from.
-- Live API: `https://marocain.investments/api/public/*`.
+- Skills catalog: [`@hei33enberg/luxury-skills`](https://www.npmjs.com/package/@hei33enberg/luxury-skills) (npm) — the machine-readable capability catalog this server draws from.
+- Live API: `https://marocain.investments/api/public/*` · AEO manifest: [`/llms.txt`](https://marocain.investments/llms.txt).
 
 ## Releasing
 
+Publishing to npm is automated by a GitHub Action (`publish-mcp`) in the platform repo:
+
 ```bash
-# from the repo root, after edits + green tests
-npm version patch              # or minor / major
-npm publish --access public    # needs an npm token in .npmrc (gitignored)
+# bump the version, commit, push — the Action publishes @marocain/mcp-server
+npm version patch        # or minor / major  (edits package.json)
 git push --follow-tags
 ```
+
+Local `npm test` runs the unit tests + the black-box MCP handshake smoke on Node 18 / 20 / 22.
 
 ## License
 

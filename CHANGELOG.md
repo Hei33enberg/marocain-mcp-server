@@ -3,6 +3,14 @@
 All notable changes to `@marocain/mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.5] — 2026-06-23
+
+### Added
+- **`request_service`** — the moat-safe conversion tool: submit a buyer enquiry / viewing / valuation / service request for a listing. Routes through marocain's own lead flow (`POST /api/orders`, contact branch) to the listing's verified agent and returns a reference. **Never** returns agent contact. For a not-yet-claimed listing it returns a clear `listing_unclaimed` note instead of routing. **Nine tools total.**
+
+### Security (moat hardening)
+- Listing payloads (`search_listings`, `get_listing`) now **redact the origin-portal deep link** (`source_url`, `source_listing_id`, `source_aliases`) and the **agent / agency name** — closing an off-platform contact bypass a downstream agent could otherwise use to reach the seller directly. The `source` *name* (provenance) is kept; each listing gains an `enquire` pointer to `request_service`.
+
 ## [0.1.4] — 2026-06-23
 
 ### Added

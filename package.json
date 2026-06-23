@@ -1,12 +1,18 @@
 {
   "name": "@marocain/mcp-server",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "description": "Model Context Protocol server for marocain.investments — the {GIN} authored real-estate intelligence (scoring verdict, M-Value, market facts, derived memos) for Morocco. Moat-safe: never exposes agent contact details.",
   "type": "module",
   "bin": {
     "marocain-mcp-server": "index.js"
   },
-  "files": ["index.js", "lib.js", "README.md", "LICENSE", "CHANGELOG.md"],
+  "files": [
+    "index.js",
+    "lib.js",
+    "README.md",
+    "LICENSE",
+    "CHANGELOG.md"
+  ],
   "engines": {
     "node": ">=18"
   },
@@ -15,14 +21,31 @@
     "test": "node --test test/lib.test.js"
   },
   "keywords": [
-    "mcp", "model-context-protocol", "mcp-server", "morocco", "real-estate", "gin",
-    "marocain", "ai-agents", "tool-use", "marrakech", "casablanca", "investment"
+    "mcp",
+    "model-context-protocol",
+    "mcp-server",
+    "morocco",
+    "real-estate",
+    "gin",
+    "marocain",
+    "ai-agents",
+    "tool-use",
+    "marrakech",
+    "casablanca",
+    "investment"
   ],
   "mcp": {
-    "categories": ["Real Estate", "Finance & Fintech", "Search & Data Extraction"]
+    "categories": [
+      "Real Estate",
+      "Finance & Fintech",
+      "Search & Data Extraction"
+    ]
   },
   "homepage": "https://marocain.investments",
-  "repository": { "type": "git", "url": "https://github.com/Hei33enberg/marocain-mcp-server" },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Hei33enberg/marocain-mcp-server"
+  },
   "license": "MIT",
   "author": "marocain.investments",
   "publishConfig": {

@@ -10,8 +10,9 @@
 - [x] Submission to Awesome MCP Servers and `mcpservers.org`
 
 ## Phase 2: Transaction & Booking
+- [x] Buyer enquiry / viewing request — first write endpoint (`request_service`), routed on-platform to the listing's verified agent, moat-safe (no contact returned)
 - [ ] Implement `x402` micropayments for premium real-estate market memos
-- [ ] Agent-driven property viewing bookings (write endpoints)
+- [ ] Agent-driven property viewing *bookings* (calendar/availability write endpoints)
 - [ ] E2EE (End-to-End Encryption) for agent-broker negotiations
 
 ## Phase 3: Analytics & Ecosystem
