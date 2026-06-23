@@ -273,12 +273,56 @@ const TOOLS = [
       }
     },
   },
+  {
+    name: "list_services",
+    description:
+      "List the platform's transactable services + EUR prices — for BUYERS (AI staging, viral content, refundable reservation, bank-honored appraiser, on-site visitation, the €199 AI business-model plan, plus request-only lawyer / financing / bespoke commercialization) and for AGENTS/sellers (listing boost, photo relight). Returns each `product_type` + its `variant` ids + price, which `order_service` needs. NOTE: card checkout for instant products may be temporarily unavailable while the payment processor is being reconnected; request-based services and buyer enquiries work regardless.",
+    inputSchema: { type: "object", properties: {} },
+    handler: () => apiGet(`/api/public/services`),
+  },
+  {
+    name: "order_service",
+    description:
+      "Place an order for any platform service (a `product_type` + `variant` from list_services). Instant products return a Stripe `checkout_url` to complete payment on-platform; request-only products (lawyer, financing, commercialization, contact) return a tracked `order_id` with no upfront charge. Requires the buyer's email. NEVER returns agent/seller contact. For a plain buyer enquiry to a listing's agent, prefer `request_service`.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        product_type: { type: "string", maxLength: 40, description: "From list_services, e.g. staging, viral, reservation, appraiser, visaitation, commercialization_plan, lawyer, financing, listing_boost, photo_relight." },
+        variant: { type: "string", maxLength: 40, description: "The variant id for that product (from list_services), e.g. single / pack / deposit / essential / standard / premier." },
+        listing_id: { type: "string", maxLength: 64, description: "Listing id (UUID) the service applies to." },
+        buyer_email: { type: "string", maxLength: 200, description: "Buyer's email (required)." },
+        buyer_name: { type: "string", maxLength: 120, description: "Buyer's name." },
+        buyer_phone: { type: "string", maxLength: 40, description: "Optional buyer phone." },
+        message: { type: "string", maxLength: 2000, description: "Optional note / scope (request-only products)." },
+      },
+      required: ["product_type", "variant", "buyer_email"],
+    },
+    handler: async (a) => {
+      try {
+        return await apiPost(`/api/orders`, {
+          product_type: a.product_type, variant: a.variant, listing_id: a.listing_id,
+          buyer_email: a.buyer_email, buyer_name: a.buyer_name, buyer_phone: a.buyer_phone, message: a.message,
+        });
+      } catch (e) {
+        const m = String(e?.message ?? "");
+        // Don't leak the upstream payment-processor error (it can contain a key
+        // fragment); surface a clean, honest status. The order row is still recorded.
+        if (/api key|checkout|stripe/i.test(m)) {
+          return {
+            ok: false, reason: "checkout_unavailable",
+            note: "Card checkout is temporarily unavailable while the platform reconnects its payment processor — instant payment will be enabled shortly. Request-based services (lawyer, financing, commercialization) and buyer enquiries (request_service) work now.",
+          };
+        }
+        throw e;
+      }
+    },
+  },
 ];
 
 const TOOL_BY_NAME = Object.fromEntries(TOOLS.map((t) => [t.name, t]));
 
 const server = new Server(
-  { name: "marocain-mcp-server", version: "0.1.5" },
+  { name: "marocain-mcp-server", version: "0.1.6" },
   { capabilities: { tools: {} } },
 );
 

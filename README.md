@@ -46,7 +46,9 @@ Add to `claude_desktop_config.json`:
 
 ## Tools
 
-Nine tools — eight read-only analysis tools plus one moat-safe enquiry tool.
+Eleven tools — eight read-only analysis tools, a moat-safe enquiry tool, and two commerce tools (discover + order paid services).
+
+### Analyse (free)
 
 | Tool | What it does |
 |------|--------------|
@@ -58,7 +60,16 @@ Nine tools — eight read-only analysis tools plus one moat-safe enquiry tool.
 | `semantic_search` | Conceptual / vector search across the catalogue **and** the authored guides (Foreign Buyer's Playbook, Morocco-vs-Dubai, AI-scoring methodology, residency, city theses). |
 | `gin_ask` | Ask **T{AI]GIN**, the agentic investment analyst, a one-shot question — it plans, searches, scores with the {GIN} pillars and answers with citations. |
 | `gin_deal_memo` | A structured, honest investor **deal memo** for one listing (verdict, M-Value, yield, strengths, risks, district read, next steps). |
-| `request_service` | Submit a buyer **enquiry** / request a viewing, valuation, financing, renovation or legal help — routed on-platform to the listing's verified agent. Returns a reference, **never** any contact. |
+
+### Enquire & transact
+
+| Tool | What it does |
+|------|--------------|
+| `request_service` | Submit a buyer **enquiry** / request a viewing — routed on-platform to the listing's verified agent. Returns a reference, **never** any contact. |
+| `list_services` | The transactable **service catalogue** + EUR prices — buyer services (AI staging, viral content, reservation, appraiser, visitation, the €199 AI business plan, lawyer / financing / commercialization) and agent services (listing boost, photo relight). |
+| `order_service` | **Order** any service. Instant products return a Stripe `checkout_url` (pay on-platform); request-only products return a tracked `order_id`. Never returns contact. |
+
+> **Payments:** card checkout for *instant* products may be briefly unavailable while the platform reconnects its payment processor — request-based services and buyer enquiries work regardless. `order_service` reports this cleanly.
 
 ## Discover → analyse → enquire
 

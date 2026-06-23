@@ -3,6 +3,12 @@
 All notable changes to `@marocain/mcp-server` are documented here.
 Format follows [Keep a Changelog](https://keepachangelog.com/).
 
+## [0.1.6] — 2026-06-23
+
+### Added (commerce — buyer & agent paid services)
+- **`list_services`** — the transactable catalogue + EUR prices: buyer services (staging €9.9, viral €29, reservation €149, appraiser €299–999, visitation €399, the €199 AI business plan, plus request-only lawyer / financing / commercialization) and agent services (listing boost €49, photo relight €19). Returns each `product_type` + `variant` id so an agent can order. Forwards to `/api/public/services`.
+- **`order_service`** — place an order for any service. Instant products return a Stripe `checkout_url`; request-only products return a tracked `order_id` (no upfront charge). Forwards to `POST /api/orders`. Never returns contact; surfaces a clean `checkout_unavailable` note if card payment is temporarily offline (no raw processor error). **Eleven tools total.**
+
 ## [0.1.5] — 2026-06-23
 
 ### Added
